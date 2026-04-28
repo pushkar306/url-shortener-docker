@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # --- Database Service ---
+  db:
+    image: postgres:15-alpine
+    container_name: shortener_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shortener
+    volumes:
+      # Maps the container's data directory to a named Docker volume for persistence
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - shortener_network
+    # Healthcheck ensures the DB is fully ready before the API tries to connect
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d shortener"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- Backend API Service ---
+  api:
+    build: ./backend
+    container_name: shortener_api
+    ports:
+      - "8000:8000"
+    environment:
+      # Connects to the DB using the container name ('db') as the hostname
+      - DATABASE_URL=postgresql://user:password@db:5432/shortener
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - shortener_network
+
+# Define the persistent volume
+volumes:
+  pgdata:
+
+# Define an isolated bridge network for the containers to communicate safely
+networks:
+  shortener_network:
+    driver: bridge
