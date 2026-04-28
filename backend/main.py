@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 # 1. DB Configurantion
 
@@ -35,7 +35,7 @@ def get_db():
         db.close()
 
 class URLCreate(BaseModel):
-    url : str
+    url : HttpUrl
 
 def generate_short_id(length=6):
     chars = string.ascii_letters + string.digits
@@ -48,14 +48,17 @@ def create_short_url(item:URLCreate, db: Session = Depends(get_db)):
     short_id = generate_short_id()
 
     while db.query(URLItem).filter(URLItem.short_id==short_id).first():
-        short_id = generate_short_id()
+        short_id = generate_short_id()  
 
-    db_url = URLItem(original_url = item.url , short_id=short_id)
+    db_url = URLItem(original_url = str(item.url) , short_id=short_id)
     db.add(db_url)
     db.commit()
     db.refresh(db_url)
 
-    return {"short_url : ", f"http://localhost:8000/{short_id}","original_url : ", item.url}    
+    return {
+        "short_url": f"http://localhost:8000/{short_id}",
+        "original_url": str(item.url)
+    }
 
 @app.get("/{short_id}")
 def redirect_to_url(short_id: str, db: Session = Depends(get_db)):

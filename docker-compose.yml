@@ -11,9 +11,10 @@ services:
       POSTGRES_DB: shortener
     volumes:
       # Maps the container's data directory to a named Docker volume for persistence
-      - pgdata:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql/data
     networks:
       - shortener_network
+    restart: always
     # Healthcheck ensures the DB is fully ready before the API tries to connect
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d shortener"]
@@ -35,6 +36,7 @@ services:
         condition: service_healthy
     networks:
       - shortener_network
+    restart: always
 
 # Define the persistent volume
 volumes:
